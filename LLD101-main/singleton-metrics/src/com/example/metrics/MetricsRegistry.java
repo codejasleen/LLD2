@@ -29,16 +29,20 @@ public class MetricsRegistry implements Serializable {
     private final Map<String, Long> counters = new HashMap<>();
 
     // BROKEN: should be private and should prevent second construction
-    public MetricsRegistry() {
+    private MetricsRegistry() {
+         if (instanceCreated) {
+            throw new RuntimeException("Cannot create second instance of MetricsRegistry");
+        }
+        instanceCreated = true;
         // intentionally empty
     }
 
     // BROKEN: racy lazy init; two threads can create two instances
+      private static class Holder {
+        private static final MetricsRegistry INSTANCE = new MetricsRegistry();
+    }
     public static MetricsRegistry getInstance() {
-        if (INSTANCE == null) {
-            INSTANCE = new MetricsRegistry();
-        }
-        return INSTANCE;
+        return Holder.INSTANCE;
     }
 
     public synchronized void setCount(String key, long value) {
@@ -58,4 +62,7 @@ public class MetricsRegistry implements Serializable {
     }
 
     // TODO: implement readResolve() to preserve singleton on deserialization
+     private Object readResolve() throws ObjectStreamException {
+        return getInstance();
+    }
 }

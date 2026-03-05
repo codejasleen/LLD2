@@ -25,7 +25,7 @@ public class MetricsRegistry implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    private static MetricsRegistry INSTANCE; // BROKEN: not volatile, not thread-safe
+    private static volatile MetricsRegistry INSTANCE; // BROKEN: not volatile, not thread-safe
     private final Map<String, Long> counters = new HashMap<>();
 
     // BROKEN: should be private and should prevent second construction
@@ -38,11 +38,16 @@ public class MetricsRegistry implements Serializable {
     }
 
     // BROKEN: racy lazy init; two threads can create two instances
-      private static class Holder {
-        private static final MetricsRegistry INSTANCE = new MetricsRegistry();
-    }
+     
     public static MetricsRegistry getInstance() {
-        return Holder.INSTANCE;
+        if(instance==null){
+            synchronized(MetricsRegistry.class){
+                if (INSTANCE == null) {
+                INSTANCE = new MetricsRegistry();
+            }     
+        }
+        }
+        return INSTANCE;
     }
 
     public synchronized void setCount(String key, long value) {
